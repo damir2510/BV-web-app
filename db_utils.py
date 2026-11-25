@@ -10,9 +10,9 @@ def get_conn():
     a ako ih nema, koristi tvoje upisane podatke.
     """
     return pymysql.connect(
-        host=os.getenv("DB_HOST", "mysql-22f7bcfd-nogalod-c393.d.aivencloud.com"),
+        host=os.getenv("DB_HOST", "mysql-29e254f-nogalod-c393.j.aivencloud.com"),
         user=os.getenv("DB_USER", "avnadmin"),
-        password=os.getenv("DB_PASS", "AVNS_0qoNdSQVUuF9wTfHN8D"),
+        password=os.getenv("DB_PASS", "AVNS_u1hHwx-qXeTG_WHdhNw"),
         port=int(os.getenv("DB_PORT", 27698)),
         database=os.getenv("DB_NAME", "defaultdb"),
         cursorclass=pymysql.cursors.DictCursor,
