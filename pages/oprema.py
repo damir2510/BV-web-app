@@ -205,7 +205,6 @@ if is_admin:
             conn.commit(); conn.close(); st.sidebar.success("Podaci osveženi!"); st.rerun()
         except Exception as e:
             st.sidebar.error(f"Greška: {e}")
-            izabrani_broj = st.sidebar.text_input("🔢 Inventarski br. (za KARTON):", "").strip()
 try:
     if izabrana_tabela == "oprema":
         upit_oprema = (
