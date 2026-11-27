@@ -188,7 +188,7 @@ tabela_opcije = {
 
 izabrana_tabela = "oprema"
 if is_admin:
-    st.sidebar.markdown("<div style='margin-top: 35px;'></div>", unsafe_allow_html=True)
+    st.sidebar.markdown("<div style='margin-top: 75px;'></div>", unsafe_allow_html=True)
     izbor_prikaza = st.sidebar.selectbox("Izaberi tabelu za rad:", list(tabela_opcije.keys()))
     izabrana_tabela = tabela_opcije[izbor_prikaza]
     uploaded_file = st.sidebar.file_uploader("Uvezi Excel (Update)", type=["xlsx"])
