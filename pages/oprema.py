@@ -162,6 +162,22 @@ ime_korisnika = st.session_state.get('ime_korisnika', 'Korisnik')
 st.markdown("<h1 style='text-align: center;'>Oprema</h1>", unsafe_allow_html=True)
 
 st.sidebar.markdown(f"👤 Prijavljeni: **{ime_korisnika}**")
+
+# 1. Odjavi se i Otvori Mapu na vrhu
+if st.sidebar.button("🚪 Odjavi se", use_container_width=True):
+    st.session_state['ulogovan'] = False
+    if "sesija" in st.query_params:
+        del st.query_params["sesija"]
+    st.rerun()
+
+if st.sidebar.button("🗺️ Otvori Mapu", use_container_width=True):
+    st.switch_page("pages/mapa_opreme.py")
+
+# 2. Mali razmak pa Inventarski broj
+st.sidebar.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
+izabrani_broj = st.sidebar.text_input("🔢 Inventarski br. (za KARTON):", "").strip()
+
+# 3. Malo veći razmak pa Admin opcije (Izbor tabele i Uvoz Excela)
 tabela_opcije = {
     "Glavna Oprema": "oprema",
     "Istorija Servisa": "istorija_servisa",
@@ -172,6 +188,7 @@ tabela_opcije = {
 
 izabrana_tabela = "oprema"
 if is_admin:
+    st.sidebar.markdown("<div style='margin-top: 35px;'></div>", unsafe_allow_html=True)
     izbor_prikaza = st.sidebar.selectbox("Izaberi tabelu za rad:", list(tabela_opcije.keys()))
     izabrana_tabela = tabela_opcije[izbor_prikaza]
     uploaded_file = st.sidebar.file_uploader("Uvezi Excel (Update)", type=["xlsx"])
@@ -188,27 +205,6 @@ if is_admin:
             conn.commit(); conn.close(); st.sidebar.success("Podaci osveženi!"); st.rerun()
         except Exception as e:
             st.sidebar.error(f"Greška: {e}")
-
-    if st.sidebar.button("📍 Popuni gradove iz GPS-a", use_container_width=True):
-        df_gps = run_query("SELECT id, gps_koordinate, zadnja_lokacija FROM oprema WHERE gps_koordinate IS NOT NULL AND gps_koordinate != ''")
-        azurirano = 0
-        for _, r in df_gps.iterrows():
-            trenutna = str(r.get('zadnja_lokacija') or '').strip().lower()
-            if not trenutna or trenutna in ['none', 'nan', 'terenska kontrola', 'nepoznata lokacija']:
-                grad = dobij_grad_iz_gps(r['gps_koordinate'])
-                if grad:
-                    execute_db("UPDATE oprema SET zadnja_lokacija = %s WHERE id = %s", (grad, int(r['id'])))
-                    azurirano += 1
-        st.sidebar.success(f"Ažurirano lokacija: {azurirano}")
-        st.rerun()
-
-if st.sidebar.button("🗺️ Otvori Mapu", use_container_width=True):
-    st.switch_page("pages/mapa_opreme.py")
-if st.sidebar.button("🚪 Odjavi se", use_container_width=True):
-    st.session_state['ulogovan'] = False
-    if "sesija" in st.query_params:
-        del st.query_params["sesija"]
-    st.rerun()
 
 izabrani_broj = st.sidebar.text_input("🔢 Inventarski br. (za KARTON):", "").strip()
 try:
