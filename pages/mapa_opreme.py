@@ -4,38 +4,34 @@ import folium
 from streamlit_folium import st_folium
 from db_utils import run_query
 
-# 1. KONFIGURACIJA (Mora biti na vrhu za punu širinu ekrana)
 st.set_page_config(page_title="Mapa Opreme", layout="wide")
 
-# CSS za sakrivanje navigacije (ako želiš da sakriješ rakete)
 st.markdown("""
     <style>
         [data-testid="stSidebarNav"] ul { display: none; }
-        .stMain { padding: 0rem; } /* Smanjuje margine za veću mapu */
+        .stMain { padding: 0rem; }
     </style>
 """, unsafe_allow_html=True)
 
-# 2. NAVIGACIJA
-p_oprema = st.Page("pages/oprema.py")
+if 'ulogovan' not in st.session_state or not st.session_state['ulogovan']:
+    st.switch_page("glavna.py")
+    st.stop()
+
 if st.sidebar.button("⬅️ Nazad na Pregled", use_container_width=True):
-    st.switch_page(p_oprema)
+    st.switch_page("pages/oprema.py")
 
 st.title("📍 Interaktivna Mapa Opreme")
 
-# 3. POVLAČENJE I PRETRAGA
-query = "SELECT inventarni_broj, naziv_proizvodjac, gps_koordinate, trenutni_radnik, status, zadnja_lokacija, sektor FROM oprema"
+query = "SELECT id, inventarni_broj, vrsta_opreme, naziv_proizvodjac, gps_koordinate, trenutni_radnik, status, zadnja_lokacija, sektor FROM oprema"
 df_all = run_query(query)
 
 if not df_all.empty:
-    # --- POLJE ZA PRETRAGU ---
-    search = st.text_input("🔍 Pretraži mapu (Sektor, Radnik ili Model):", "").lower()
-    
+    search = st.text_input("🔍 Pretraži mapu (Sektor, Radnik, Model ili Inventarni br.):", "").lower()
     df = df_all.copy()
     if search:
         mask = df.astype(str).apply(lambda x: x.str.lower().str.contains(search)).any(axis=1)
         df = df[mask]
 
-    # --- OBRADA KOORDINATA ---
     locations = []
     for _, row in df.iterrows():
         gps = row.get('gps_koordinate')
@@ -44,31 +40,66 @@ if not df_all.empty:
                 parts = str(gps).replace(' ', '').split(',')
                 lat, lon = float(parts[0]), float(parts[1])
                 locations.append({
+                    'id': int(row['id']),
+                    'inv': str(row['inventarni_broj']),
                     'lat': lat, 'lon': lon,
                     'info': f"<b>Inv:</b> {row['inventarni_broj']}<br><b>Model:</b> {row['naziv_proizvodjac']}",
                     'radnik': row.get('trenutni_radnik', '-'),
                     'status': str(row.get('status', '')).lower(),
                     'grad': row.get('zadnja_lokacija', '-')
                 })
-            except: continue
+            except Exception:
+                continue
 
+    izabrani_inv_iz_mape = None
     if locations:
-        # 4. KREIRANJE MAPE (Širina 100%)
         m = folium.Map(location=[locations[0]['lat'], locations[0]['lon']], zoom_start=8, control_scale=True)
-        
         for loc in locations:
             color = 'green' if any(x in loc['status'] for x in ['rad', 'ispravno', 'u radu']) else 'red'
             popup_html = f"<div style='width:200px;'>{loc['info']}<br><b>Lokacija:</b> {loc['grad']}<br><b>Zadužio:</b> {loc['radnik']}</div>"
-            
             folium.Marker(
                 [loc['lat'], loc['lon']],
                 popup=folium.Popup(popup_html, max_width=250),
+                tooltip=f"Inv: {loc['inv']} ({loc['radnik']})",
                 icon=folium.Icon(color=color, icon='info-sign')
             ).add_to(m)
 
-        # KLJUČ ZA VELIČINU: st_folium sa width=None se širi na ceo kontejner
-        st_folium(m, width=1500, height=700, returned_objects=[])
+        map_data = st_folium(m, width=1500, height=580, returned_objects=["last_object_clicked_tooltip"])
+        if map_data and map_data.get("last_object_clicked_tooltip"):
+            tip_tekst = str(map_data["last_object_clicked_tooltip"])
+            if "Inv:" in tip_tekst:
+                izabrani_inv_iz_mape = tip_tekst.split("Inv:")[1].split("(")[0].strip()
     else:
         st.warning("Nema rezultata za vašu pretragu ili fale GPS koordinate.")
+
+    # --- ISTORIJA PROVERA ZA IZABRANI APARAT ---
+    st.markdown("---")
+    st.subheader("📋 Istorija terenskih provera (kretanje aparata)")
+
+    opcije_aparata = ["-- Izaberi aparat --"] + [
+        f"{r['inventarni_broj']} | {r.get('vrsta_opreme', '')} {r.get('naziv_proizvodjac', '')}"
+        for _, r in df_all.iterrows()
+    ]
+    podrazumevani_index = 0
+    if izabrani_inv_iz_mape:
+        for idx, opt in enumerate(opcije_aparata):
+            if opt.startswith(f"{izabrani_inv_iz_mape} |"):
+                podrazumevani_index = idx
+                break
+
+    izbor_ap = st.selectbox("Izaberi aparat (ili klikni na marker na mapi iznad):", opcije_aparata, index=podrazumevani_index)
+    if izbor_ap != "-- Izaberi aparat --":
+        inv_odabrani = izbor_ap.split("|")[0].strip()
+        red_ap = df_all[df_all['inventarni_broj'].astype(str) == inv_odabrani]
+        if not red_ap.empty:
+            oprema_id_val = int(red_ap.iloc[0]['id'])
+            df_prov = run_query(
+                "SELECT datum_provere, radnik_ime, lokacija_naziv, gps_koordinate FROM istorija_provera WHERE oprema_id = %s ORDER BY datum_provere DESC",
+                (oprema_id_val,)
+            )
+            if not df_prov.empty:
+                st.dataframe(df_prov, use_container_width=True, hide_index=True)
+            else:
+                st.info(f"Nema zabeleženih terenskih provera u istoriji za aparat {inv_odabrani}.")
 else:
     st.info("Baza je prazna.")
