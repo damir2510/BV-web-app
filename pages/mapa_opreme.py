@@ -26,7 +26,8 @@ query = "SELECT id, inventarni_broj, vrsta_opreme, naziv_proizvodjac, gps_koordi
 df_all = run_query(query)
 
 if not df_all.empty:
-    search = st.text_input("🔍 Pretraži mapu (Sektor, Radnik, Model ili Inventarni br.):", "").lower()
+    search = st.text_input("🔍 Pretraži mapu (Sektor, Radnik ili Model):", "").lower()
+
     df = df_all.copy()
     if search:
         mask = df.astype(str).apply(lambda x: x.str.lower().str.contains(search)).any(axis=1)
@@ -38,11 +39,11 @@ if not df_all.empty:
         if gps and "," in str(gps):
             try:
                 parts = str(gps).replace(' ', '').split(',')
-                lat, lon = float(parts.pop(0)), float(parts.pop(0))
+                lat = float(parts.pop(0))
+                lon = float(parts.pop(0))
                 locations.append({
-                    'id': int(row['id']),
-                    'inv': str(row['inventarni_broj']),
-                    'lat': lat, 'lon': lon,
+                    'lat': lat,
+                    'lon': lon,
                     'info': f"<b>Inv:</b> {row['inventarni_broj']}<br><b>Model:</b> {row['naziv_proizvodjac']}",
                     'radnik': row.get('trenutni_radnik', '-'),
                     'status': str(row.get('status', '')).lower(),
@@ -51,47 +52,35 @@ if not df_all.empty:
             except Exception:
                 continue
 
-    izabrani_inv_iz_mape = None
     if locations:
-       prvi_loc = next(iter(locations))
-        m = folium.Map(location=[prvi_loc['lat'], prvi_loc['lon']], zoom_start=8, control_scale=True)
+        prva = next(iter(locations))
+        m = folium.Map(location=(prva['lat'], prva['lon']), zoom_start=8, control_scale=True)
 
         for loc in locations:
             color = 'green' if any(x in loc['status'] for x in ['rad', 'ispravno', 'u radu']) else 'red'
             popup_html = f"<div style='width:200px;'>{loc['info']}<br><b>Lokacija:</b> {loc['grad']}<br><b>Zadužio:</b> {loc['radnik']}</div>"
             folium.Marker(
-                [loc['lat'], loc['lon']],
+                (loc['lat'], loc['lon']),
                 popup=folium.Popup(popup_html, max_width=250),
-                tooltip=f"Inv: {loc['inv']} ({loc['radnik']})",
                 icon=folium.Icon(color=color, icon='info-sign')
             ).add_to(m)
 
-        map_data = st_folium(m, width=1500, height=580, returned_objects=["last_object_clicked_tooltip"])
-        if map_data and map_data.get("last_object_clicked_tooltip"):
-            tip_tekst = str(map_data["last_object_clicked_tooltip"])
-            if "Inv:" in tip_tekst:
-                izabrani_inv_iz_mape = tip_tekst.split("Inv:")[1].split("(")[0].strip()
+        st_folium(m, width=1500, height=620, returned_objects=[])
     else:
         st.warning("Nema rezultata za vašu pretragu ili fale GPS koordinate.")
 
     # --- ISTORIJA PROVERA ZA IZABRANI APARAT ---
     st.markdown("---")
-    st.subheader("📋 Istorija terenskih provera (kretanje aparata)")
+    st.subheader("📋 Istorija terenskih provera")
 
-    opcije_aparata = ["-- Izaberi aparat --"] + [
+    opcije_aparata = ["-- Izaberi aparat za prikaz istorije provera --"] + [
         f"{r['inventarni_broj']} | {r.get('vrsta_opreme', '')} {r.get('naziv_proizvodjac', '')}"
         for _, r in df_all.iterrows()
     ]
-    podrazumevani_index = 0
-    if izabrani_inv_iz_mape:
-        for idx, opt in enumerate(opcije_aparata):
-            if opt.startswith(f"{izabrani_inv_iz_mape} |"):
-                podrazumevani_index = idx
-                break
+    izbor_ap = st.selectbox("Aparat:", opcije_aparata)
 
-    izbor_ap = st.selectbox("Izaberi aparat (ili klikni na marker na mapi iznad):", opcije_aparata, index=podrazumevani_index)
-    if izbor_ap != "-- Izaberi aparat --":
-        inv_odabrani = izbor_ap.split("|")[0].strip()
+    if izbor_ap != "-- Izaberi aparat za prikaz istorije provera --":
+        inv_odabrani = izbor_ap.split("|").pop(0).strip()
         red_ap = df_all[df_all['inventarni_broj'].astype(str) == inv_odabrani]
         if not red_ap.empty:
             oprema_id_val = int(next(iter(red_ap.to_dict(orient='records')))['id'])
@@ -102,6 +91,6 @@ if not df_all.empty:
             if not df_prov.empty:
                 st.dataframe(df_prov, use_container_width=True, hide_index=True)
             else:
-                st.info(f"Nema zabeleženih terenskih provera u istoriji za aparat {inv_odabrani}.")
+                st.info(f"Nema zabeleženih terenskih provera za aparat {inv_odabrani}.")
 else:
     st.info("Baza je prazna.")
