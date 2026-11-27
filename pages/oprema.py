@@ -134,7 +134,7 @@ def generisi_pdf_karton(ins, df_s, df_e, df_b, df_k):
         ["Klasa tačnosti:", str(ins.get('klasa_tacnosti', '-'))],
         ["Preciznost / Podeok:", f"{ins.get('preciznost', '-')} / {ins.get('podeok', '-')}"]
     ]
-    t1 = Table(teh_podaci, colWidths=)
+    t1 = Table(teh_podaci, colWidths=(150, 300))
     t1.setStyle(TableStyle([('GRID', (0, 0), (-1, -1), 0.5, colors.grey), ('FONTNAME', (0, 0), (-1, -1), FONT_NAME)]))
     elements.append(t1)
 
