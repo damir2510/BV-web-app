@@ -31,8 +31,9 @@ def izvrsi_prijava():
     res = run_query("SELECT ime_prezime, is_premium FROM zaposleni WHERE korisnicko_ime = %s AND lozinka = %s", (u, p))
     if not res.empty:
         st.session_state['ulogovan'] = True
-        st.session_state['is_premium'] = int(res.iloc[0]['is_premium'])
-        st.session_state['ime_korisnika'] = res.iloc[0]['ime_prezime']
+        korisnik_red = next(iter(res.to_dict(orient='records')))
+        st.session_state['is_premium'] = int(korisnik_red['is_premium'])
+        st.session_state['ime_korisnika'] = korisnik_red['ime_prezime']
         st.query_params["sesija"] = napravi_token(u, p)
         st.switch_page(p_oprema)
     else:
