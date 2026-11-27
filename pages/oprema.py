@@ -174,7 +174,7 @@ if st.sidebar.button("🗺️ Otvori Mapu", use_container_width=True):
     st.switch_page("pages/mapa_opreme.py")
 
 # 2. Mali razmak pa Inventarski broj
-st.sidebar.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
+st.sidebar.markdown("<div style='margin-top: 35px;'></div>", unsafe_allow_html=True)
 izabrani_broj = st.sidebar.text_input("🔢 Inventarski br. (za KARTON):", "").strip()
 
 # 3. Malo veći razmak pa Admin opcije (Izbor tabele i Uvoz Excela)
