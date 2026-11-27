@@ -219,11 +219,14 @@ try:
             df['vazi_do'] = pd.to_datetime(df['max_vazi_do'], errors='coerce').dt.date
             df.loc[df['vazi_do'] == datetime(1900, 1, 1).date(), 'vazi_do'] = pd.NaT
 
-            if 'vrsta_opreme' in df.columns:
-                vrste = ["SVE"] + sorted(df['vrsta_opreme'].dropna().unique().tolist())
+         if 'vrsta_opreme' in df.columns:
+                vrste = ["SVE", "⚠️ ISTEKLO BAŽDARENJE"] + sorted(df['vrsta_opreme'].dropna().unique().tolist())
                 izabrana_vrsta = st.selectbox("📁 Filtriraj po vrsti aparata:", vrste)
-                if izabrana_vrsta != "SVE":
+               if izabrana_vrsta == "⚠️ ISTEKLO BAŽDARENJE":
+                    df = df[df['vazi_do'].notna() & (df['vazi_do'] < datetime.now().date())]
+               elif izabrana_vrsta != "SVE":
                     df = df[df['vrsta_opreme'] == izabrana_vrsta]
+
 
             red_kolona = ['inventarni_broj', 'sektor', 'vrsta_opreme', 'proizvodjac', 'naziv_proizvodjac', 'seriski_broj', 'trenutni_radnik', 'zadnja_lokacija', 'vazi_do', 'napomena']
             df_prikaz = df[[c for c in red_kolona if c in df.columns]]
