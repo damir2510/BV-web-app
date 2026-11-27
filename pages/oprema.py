@@ -92,7 +92,7 @@ def dobij_grad_iz_gps(gps_str):
         return None
     try:
         delovi = str(gps_str).replace(" ", "").split(",")
-        lat, lon = delovi, delovi
+        lat, lon = delovi.pop(0), delovi.pop(0)
         url = f"https://openstreetmap.org{lat}&lon={lon}&zoom=10&addressdetails=1"
         r = requests.get(url, headers={"User-Agent": "BV-Web-App/1.0"}, timeout=5).json()
         adr = r.get("address", {})
@@ -156,7 +156,7 @@ if 'ulogovan' not in st.session_state or not st.session_state['ulogovan']:
     st.switch_page("glavna.py")
     st.stop()
 
-is_admin = st.session_state.get('is_premium') == 5
+is_admin = int(st.session_state.get('is_premium', 0)) == 1
 ime_korisnika = st.session_state.get('ime_korisnika', 'Korisnik')
 
 st.markdown("<h1 style='text-align: center;'>Oprema</h1>", unsafe_allow_html=True)
@@ -251,7 +251,7 @@ try:
         st.markdown("---")
         res = run_query("SELECT * FROM oprema WHERE inventarni_broj = %s", (izabrani_broj,))
         if not res.empty:
-            ins = res.iloc.to_dict()
+            ins = next(iter(res.to_dict(orient='records')))
             st.subheader(f"📑 Matični karton: {ins.get('naziv_proizvodjac')} - {izabrani_broj}")
 
             c1, c2, c3, c4, c5 = st.columns(5)
@@ -332,7 +332,9 @@ try:
                                 if st.form_submit_button(f"💾 Sačuvaj {nasl}", type="primary"):
                                     naziv_fajla_db = None
                                     if prilozeni_fajl is not None:
-                                        ekst = os.path.splitext(prilozeni_fajl.name).lower()
+                                        _, ekst = os.path.splitext(prilozeni_fajl.name)
+                                        ekst = ekst.lower()
+
                                         vrsta_cisto = ocisti_naziv(ins.get('vrsta_opreme'))
                                         tip_cisto = ocisti_naziv(nasl)
                                         broj_cisto = re.sub(r"[^A-Za-z0-9-]+", "-", br_dok.strip()).strip("-") or "dok"
