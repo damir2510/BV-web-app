@@ -38,7 +38,7 @@ if not df_all.empty:
         if gps and "," in str(gps):
             try:
                 parts = str(gps).replace(' ', '').split(',')
-                lat, lon = float(parts[0]), float(parts[1])
+                lat, lon = float(parts.pop(0)), float(parts.pop(0))
                 locations.append({
                     'id': int(row['id']),
                     'inv': str(row['inventarni_broj']),
@@ -53,7 +53,9 @@ if not df_all.empty:
 
     izabrani_inv_iz_mape = None
     if locations:
-        m = folium.Map(location=[locations[0]['lat'], locations[0]['lon']], zoom_start=8, control_scale=True)
+       prvi_loc = next(iter(locations))
+        m = folium.Map(location=[prvi_loc['lat'], prvi_loc['lon']], zoom_start=8, control_scale=True)
+
         for loc in locations:
             color = 'green' if any(x in loc['status'] for x in ['rad', 'ispravno', 'u radu']) else 'red'
             popup_html = f"<div style='width:200px;'>{loc['info']}<br><b>Lokacija:</b> {loc['grad']}<br><b>Zadužio:</b> {loc['radnik']}</div>"
@@ -92,7 +94,7 @@ if not df_all.empty:
         inv_odabrani = izbor_ap.split("|")[0].strip()
         red_ap = df_all[df_all['inventarni_broj'].astype(str) == inv_odabrani]
         if not red_ap.empty:
-            oprema_id_val = int(red_ap.iloc[0]['id'])
+            oprema_id_val = int(next(iter(red_ap.to_dict(orient='records')))['id'])
             df_prov = run_query(
                 "SELECT datum_provere, radnik_ime, lokacija_naziv, gps_koordinate FROM istorija_provera WHERE oprema_id = %s ORDER BY datum_provere DESC",
                 (oprema_id_val,)
