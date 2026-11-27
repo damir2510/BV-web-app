@@ -219,7 +219,7 @@ try:
             df['vazi_do'] = pd.to_datetime(df['max_vazi_do'], errors='coerce').dt.date
             df.loc[df['vazi_do'] == datetime(1900, 1, 1).date(), 'vazi_do'] = pd.NaT
 
-                        if 'vrsta_opreme' in df.columns:
+            if 'vrsta_opreme' in df.columns:
                 vrste = ["SVE", "⚠️ ISTEKLO BAŽDARENJE"] + sorted(df['vrsta_opreme'].dropna().unique().tolist())
                 izabrana_vrsta = st.selectbox("📁 Filtriraj po vrsti aparata:", vrste)
                 if izabrana_vrsta == "⚠️ ISTEKLO BAŽDARENJE":
