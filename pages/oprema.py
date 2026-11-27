@@ -23,7 +23,7 @@ st.set_page_config(page_title="Evidencija Opreme", layout="wide")
 
 st.markdown("""
     <style>
-        html, body, [class*="st-"], .stMarkdown, .stTable, .stDataFrame { font-family: 'Arial', sans-serif !important; }
+        html, body, .stMarkdown p, .stTable, .stDataFrame { font-family: 'Arial', sans-serif; }
         .stAlert { padding: 0.5rem; margin-bottom: 0.5rem; }
         [data-testid="stSidebarNav"] ul { display: none; }
     </style>
