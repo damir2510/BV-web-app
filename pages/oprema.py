@@ -191,6 +191,18 @@ if is_admin:
     st.sidebar.markdown("<div style='margin-top: 75px;'></div>", unsafe_allow_html=True)
     izbor_prikaza = st.sidebar.selectbox("Izaberi tabelu za rad:", list(tabela_opcije.keys()))
     izabrana_tabela = tabela_opcije[izbor_prikaza]
+    df_export = run_query(f"SELECT * FROM {izabrana_tabela}")
+    if not df_export.empty:
+        excel_buffer = io.BytesIO()
+        with pd.ExcelWriter(excel_buffer, engine="xlsxwriter") as writer:
+            df_export.to_excel(writer, index=False, sheet_name=izabrana_tabela[:31])
+        st.sidebar.download_button(
+            label=f"📥 Izvezi celu tabelu (.xlsx)",
+            data=excel_buffer.getvalue(),
+            file_name=f"{izabrana_tabela}_{datetime.now().strftime('%Y-%m-%d')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True
+        )
     uploaded_file = st.sidebar.file_uploader("Uvezi Excel (Update)", type=["xlsx"])
     if uploaded_file and st.sidebar.button("🚀 POKRENI UVOZ", use_container_width=True):
         try:
